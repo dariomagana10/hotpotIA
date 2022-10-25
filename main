@@ -1,0 +1,146 @@
+
+function doPost(e) {
+
+    var operation = JSON.parse(e.postData.contents);
+    var inputString;
+    var styleString;
+    var setStyleString;
+
+
+  try{
+    inputString = operation.inputText;
+    styleString = operation.styleId;
+
+
+    switch (styleString.toString()) {
+
+    case "Creativo":
+      setStyleString = "in the style of a painting";
+      break;
+
+    case "Programación":
+      setStyleString = "in the style of vaporwave";
+      break;
+    case "Orgánica":
+      setStyleString ="in the style of cyberpunk";
+      break;
+    case "Pensamiento":
+      setStyleString = "in the style of cave artwork";
+      break;
+    case "Estilo de vida":
+      setStyleString = "in the style of an digital illustration";
+      break;
+    case "Negocios":
+      setStyleString = "in the style of a geometric painting";
+      break;
+    case "Sensaciones":
+      setStyleString = "in the style of a comic art";
+      break;
+    case "Mecánica":
+      setStyleString = "in the style of space";
+      break;
+    case "Custom":
+      setStyleString = "in the style of a Picasso painting";
+      break;
+  }
+
+    //Format the recipients phone number to delete additional numbers
+    var longString = inputString + " "+setStyleString;
+
+    //ScriptApp.newTrigger(sendToIA(longString, eventId)).timeBased().after(100).create();
+    var publicUrl = sendToIA(longString);
+
+  }
+  catch(e){
+        
+  }
+  return ContentService.createTextOutput(JSON.stringify(
+        {
+            "status": "200 OK",
+            "imageUrl": publicUrl[0],
+            "string": publicUrl[1]
+                }))
+}
+
+
+
+
+function doGet(e) {
+
+    var cadena = e.parameter["hub.challenge"];
+
+    return ContentService.createTextOutput(cadena).setMimeType(ContentService.MimeType.CSV);
+}
+
+
+
+function sendToIA(longString) {
+
+//Test function
+//longString = "how to make a tv spot in style of a comic book";
+
+var loginToken = "YOUR-TOKEN";
+
+let payload = 
+  {
+  "inputText": longString,
+  "styleId": "custom"
+};
+
+
+  var options =
+  {
+    method: 'POST',
+    headers: {
+      "Authorization": loginToken,
+      "Content-Type": "application/x-www-form-urlencoded"
+    },
+    payload: payload,
+    redirect: 'follow',
+  };
+
+  var response = UrlFetchApp.fetch("https://api.hotpot.ai//make-art", options);
+
+  Logger.log(response);
+
+  var folder = DriveApp.getFolderById('1MmE3azJK4416pEP5DXVLhVpwCcJqbRSc');
+  var image = folder.createFile(response);
+  image.setName(longString);
+  var imageUrl = image.getUrl();
+
+  var firstString = "https://drive.google.com/uc?id=";
+  var imageId = imageUrl.match(/[-\w]{25,}/);
+  var publicUrl = firstString+imageId;
+  Logger.log(publicUrl);
+
+
+  var newarray = [publicUrl, longString];
+
+  return newarray;
+
+
+}
+
+
+function fireZap(publicUrl) {
+
+  //publicUrl = "https://drive.google.com/uc?id=1b4R6JB_Jj_zjdpeDX0KKXCuuUEQdZ7yZ";
+  //eventId = "12356789"
+
+  var endpoint = "https://hooks.zapier.com/hooks/catch/8674223/b0croc0/";
+
+  var payload = {
+    "publicUrl" : publicUrl,
+  };
+
+  var options = {
+    "method" : "POST",
+    "payload" : JSON.stringify(payload)
+  };
+
+  UrlFetchApp.fetch(endpoint, options)
+
+}
+
+
+
